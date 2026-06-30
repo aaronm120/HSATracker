@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  familyMembers FamilyMember[]
+  categories    Category[]
+  expenses      Expense[]
+}
+
+model FamilyMember {
+  id        String @id @default(cuid())
+  userId    String
+  name      String
+  sortOrder Int    @default(0)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@unique([userId, name])
+}
+
+model Category {
+  id       String  @id @default(cuid())
+  userId   String?
+  name     String
+  isCustom Boolean @default(false)
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+}
+
+model Expense {
+  id                  String              @id @default(cuid())
+  userId              String
+  familyMemberId      String
+  categoryId          String
+  date                DateTime            @db.Date
+  provider            String
+  amount              Decimal             @db.Decimal(10, 2)
+  paymentMethod       PaymentMethod
+  reimbursementStatus ReimbursementStatus
+  reimbursementDate   DateTime?           @db.Date
+  notes               String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyMember FamilyMember @relation(fields: [familyMemberId], references: [id], onDelete: Restrict)
+  category     Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  receipts     Receipt[]
+
+  @@index([userId, date])
+  @@index([userId, reimbursementStatus])
+  @@index([userId, paymentMethod])
+  @@index([userId, familyMemberId])
+  @@index([userId, categoryId])
+}
+
+model Receipt {
+  id        String   @id @default(cuid())
+  expenseId String
+  fileName  String
+  mimeType  String
+  fileKey   String
+  fileSize  Int
+  createdAt DateTime @default(now())
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+}
+
+enum PaymentMethod {
+  OUT_OF_POCKET
+  DIRECT_HSA
+}
+
+enum ReimbursementStatus {
+  PENDING
+  REIMBURSED
+  NA
+}
