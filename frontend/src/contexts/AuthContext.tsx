@@ -8,13 +8,24 @@ interface AuthState {
   isLoading: boolean;
 }
 
+export type LoginResult =
+  | { status: 'success' }
+  | { status: 'twoFactorRequired'; challengeToken: string };
+
 interface AuthContextValue extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  verifyTwoFactor: (challengeToken: string, code: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function persistSession(token: string, user: User) {
+  localStorage.setItem('hsa_token', token);
+  localStorage.setItem('hsa_user', JSON.stringify(user));
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -37,13 +48,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const { data } = await api.post<{ token: string; user: User }>('/auth/login', {
-      email,
-      password,
+  const login = async (email: string, password: string): Promise<LoginResult> => {
+    const { data } = await api.post<
+      | { token: string; user: User }
+      | { twoFactorRequired: true; challengeToken: string }
+    >('/auth/login', { email, password });
+
+    if ('twoFactorRequired' in data) {
+      return { status: 'twoFactorRequired', challengeToken: data.challengeToken };
+    }
+    persistSession(data.token, data.user);
+    setState({ user: data.user, token: data.token, isLoading: false });
+    return { status: 'success' };
+  };
+
+  const verifyTwoFactor = async (challengeToken: string, code: string) => {
+    const { data } = await api.post<{ token: string; user: User }>('/auth/login/2fa', {
+      challengeToken,
+      code,
     });
-    localStorage.setItem('hsa_token', data.token);
-    localStorage.setItem('hsa_user', JSON.stringify(data.user));
+    persistSession(data.token, data.user);
     setState({ user: data.user, token: data.token, isLoading: false });
   };
 
@@ -52,9 +76,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
     });
-    localStorage.setItem('hsa_token', data.token);
-    localStorage.setItem('hsa_user', JSON.stringify(data.user));
+    persistSession(data.token, data.user);
     setState({ user: data.user, token: data.token, isLoading: false });
+  };
+
+  const refreshUser = async () => {
+    const { data } = await api.get<{ user: User }>('/auth/me');
+    setState((s) => {
+      if (s.token) localStorage.setItem('hsa_user', JSON.stringify(data.user));
+      return { ...s, user: data.user };
+    });
   };
 
   const logout = () => {
@@ -64,7 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ ...state, login, verifyTwoFactor, register, refreshUser, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

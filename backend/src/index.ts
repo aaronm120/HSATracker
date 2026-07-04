@@ -60,7 +60,11 @@ app.use('/api/receipts', receiptsRouter);
 // Serve built frontend in production
 const publicPath = path.join(__dirname, '../public');
 app.use(express.static(publicPath));
-app.get('*', (_req, res) => {
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 

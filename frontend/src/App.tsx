@@ -46,6 +46,8 @@ export default function App() {
           <Route path="summary" element={<SummaryPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
+        {/* Unknown paths → send home (which resolves to login or expenses) */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

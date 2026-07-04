@@ -29,6 +29,13 @@ export async function authenticate(
     return;
   }
 
+  // A 2FA challenge token is not a valid access credential — it may only be
+  // exchanged at the 2FA verification endpoint.
+  if (payload.twoFactorPending) {
+    res.status(401).json({ error: 'Two-factor authentication not completed' });
+    return;
+  }
+
   const user = await db.user.findUnique({
     where: { id: payload.userId },
     select: { id: true, email: true },

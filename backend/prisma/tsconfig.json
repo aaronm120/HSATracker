@@ -1,8 +1,10 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "rootDir": "..",
-    "outDir": "../dist-seed"
+    "rootDir": ".",
+    "outDir": "./dist",
+    "declaration": false,
+    "noEmit": false
   },
-  "include": ["../prisma/**/*", "../src/lib/db.ts"]
+  "include": ["seed.ts"]
 }

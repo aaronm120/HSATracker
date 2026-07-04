@@ -4,6 +4,8 @@ export type ReimbursementStatus = 'PENDING' | 'REIMBURSED' | 'NA';
 export interface User {
   id: string;
   email: string;
+  twoFactorEnabled: boolean;
+  twoFactorRecoveryCodesRemaining: number;
 }
 
 export interface FamilyMember {
