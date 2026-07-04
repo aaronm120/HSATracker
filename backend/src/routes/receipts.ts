@@ -26,7 +26,7 @@ const upload = multer({
 router.post('/expenses/:expenseId', upload.array('files', 10), async (req, res) => {
   try {
     const expense = await db.expense.findFirst({
-      where: { id: req.params.expenseId, userId: req.user.id },
+      where: { id: String(req.params.expenseId), userId: req.user.id },
     });
     if (!expense) {
       res.status(404).json({ error: 'Expense not found' });

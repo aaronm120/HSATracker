@@ -98,11 +98,13 @@ router.get('/summary', async (req, res) => {
           by: ['familyMemberId'],
           where: { userId, ...yearFilter },
           _sum: { amount: true },
+          orderBy: { _sum: { amount: 'desc' } },
         }),
         db.expense.groupBy({
           by: ['categoryId'],
           where: { userId, ...yearFilter },
           _sum: { amount: true },
+          orderBy: { _sum: { amount: 'desc' } },
         }),
         db.expense.aggregate({
           where: { userId, reimbursementStatus: 'PENDING', ...yearFilter },
@@ -136,12 +138,12 @@ router.get('/summary', async (req, res) => {
       totalByMember: byMemberRaw.map((r) => ({
         memberId: r.familyMemberId,
         memberName: memberMap[r.familyMemberId] ?? 'Unknown',
-        total: r._sum.amount?.toString() ?? '0',
+        total: r._sum?.amount?.toString() ?? '0',
       })),
       totalByCategory: byCategoryRaw.map((r) => ({
         categoryId: r.categoryId,
         categoryName: categoryMap[r.categoryId] ?? 'Unknown',
-        total: r._sum.amount?.toString() ?? '0',
+        total: r._sum?.amount?.toString() ?? '0',
       })),
       totalPendingReimbursement: pending._sum.amount?.toString() ?? '0',
       totalReimbursedYTD: reimbursedYTD._sum.amount?.toString() ?? '0',
